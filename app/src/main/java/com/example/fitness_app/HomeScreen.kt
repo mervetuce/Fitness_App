@@ -1,39 +1,50 @@
 package com.example.fitness_app
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.fitness_app.model.FoodItem
-import com.example.fitness_app.ui.theme.FoodLogList // ✅ Gerekli import
 
 @Composable
-fun HomeScreen(
-    navController: NavController,
-    foodLog: List<FoodItem>,
-    onRemoveFood: (FoodItem) -> Unit,
-    onNavigateToDiet: () -> Unit,
-    onNavigateToWater: () -> Unit,
-    onNavigateToFitness: () -> Unit,
-    onNavigateToHome: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
-) {
-    // ✅ calories zaten Int ise doğrudan toplanabilir
-    val totalCalories = foodLog.sumOf { it.calories }
-    val calorieGoal = 2000
-    val calorieProgress = totalCalories.toFloat() / calorieGoal
+fun HomeScreen(navController: NavController) {
+    // Aynı Activity scope’undan VM'leri alıyoruz (ekranlar arası paylaşım için)
+    val ctx = LocalContext.current as ComponentActivity
+    val dietVm: DietViewModel = viewModel(ctx)
+    val waterVm: WaterViewModel = viewModel(ctx)
+    val fitnessVm: FitnessViewModel = viewModel(ctx)
+    val fitnessProgress = (fitnessVm.completedCount / fitnessVm.dailyGoal.toFloat()).coerceIn(0f, 1f)
+
+
+    // Diet verileri
+    val totalCalories = dietVm.totalCalories
+    val calorieGoal = dietVm.calorieGoal
+    val dietProgress = (totalCalories / calorieGoal.toFloat()).coerceIn(0f, 1f)
+
+    // Water verileri
+    val totalWater = waterVm.total
+    val waterGoal = waterVm.dailyGoal
+    val waterProgress = (totalWater / waterGoal.toFloat()).coerceIn(0f, 1f)
 
     Scaffold(
-        bottomBar = {
-            BottomNavigationBar(navController = navController)
-        }
+        bottomBar = { BottomNavigationBar(navController) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -49,41 +60,34 @@ fun HomeScreen(
             Text(
                 text = "How are you today?",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                ProgressItem("Water", 0f, Color.Blue)
-                ProgressItem("Diet", calorieProgress.coerceIn(0f, 1f), Color.Green)
-                ProgressItem("Fitness", 0f, Color.Red)
+                ProgressItem("Water", waterProgress)
+                ProgressItem("Diet", dietProgress)
+                ProgressItem("Fitness", fitnessProgress)
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoCard("Water Intake", "0 / 2500 ml", Color.Blue)
-                InfoCard("Calories", "$totalCalories / $calorieGoal kcal", Color.Green)
-                InfoCard("Fitness", "0 / 9 exercises", Color.Red)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (foodLog.isNotEmpty()) {
-                Text("Recent Foods", style = MaterialTheme.typography.titleMedium)
-                FoodLogList(foodLog = foodLog, onRemoveFood = onRemoveFood)
+                InfoCard("Water Intake", "$totalWater / $waterGoal ml")
+                InfoCard("Calories", "$totalCalories / $calorieGoal kcal")
+                // İstersen buraya Fitness kartını da eklersin
             }
         }
     }
 }
 
+/** Küçük yuvarlak progress + yüzde yazısı */
 @Composable
-fun ProgressItem(label: String, progress: Float, color: Color) {
+private fun ProgressItem(label: String, progress: Float) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
-            progress = progress,
-            modifier = Modifier.size(64.dp),
-            color = color,
+            progress = { progress.coerceIn(0f, 1f) },
+            modifier = Modifier.height(64.dp),
             strokeWidth = 6.dp
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -91,16 +95,17 @@ fun ProgressItem(label: String, progress: Float, color: Color) {
     }
 }
 
+/** Başlık + değer gösteren sade kart */
 @Composable
-fun InfoCard(text: String, value: String, color: Color) {
+private fun InfoCard(title: String, value: String) {
     Card {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(text, style = MaterialTheme.typography.labelMedium, color = Color.DarkGray)
-            Text(value, style = MaterialTheme.typography.bodyLarge, color = color)
+            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            Text(value, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }

@@ -1,78 +1,76 @@
 package com.example.fitness_app
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
 import com.example.fitness_app.model.FoodItem
 
 @Composable
 fun AddFoodScreen(
-    onAddClick: (FoodItem) -> Unit, // ✅ Burada güncelleme yaptık
-    onCancelClick: () -> Unit
+    onAdd: (FoodItem) -> Unit,
+    onCancel: () -> Unit
 ) {
-    var foodName by remember { mutableStateOf(TextFieldValue("")) }
-    var calories by remember { mutableStateOf(TextFieldValue("")) }
-    var quantity by remember { mutableStateOf(TextFieldValue("")) }
+    var foodName by remember { mutableStateOf("") }
+    var calories by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .widthIn(min = 320.dp)
+            .padding(16.dp)
     ) {
-        Text("Add Food", style = MaterialTheme.typography.headlineMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Add Food", style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = onCancel) { Text("X") }
+        }
+        Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
             value = foodName,
             onValueChange = { foodName = it },
             label = { Text("Food Name") },
-            placeholder = { Text("e.g., Apple, Chicken Breast") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
             value = calories,
-            onValueChange = { calories = it },
+            onValueChange = { input -> if (input.all { it.isDigit() }) calories = input },
             label = { Text("Calories") },
-            placeholder = { Text("e.g., 150") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
             value = quantity,
             onValueChange = { quantity = it },
             label = { Text("Quantity (Pieces / Grams)") },
-            placeholder = { Text("e.g., 1, 100g") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            OutlinedButton(onClick = onCancelClick) {
-                Text("Cancel")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+            Spacer(Modifier.width(8.dp))
             Button(
                 onClick = {
-                    val foodItem = FoodItem(
-                        name = foodName.text,
-                        calories = calories.text.toIntOrNull() ?: 0,
-                        quantity = quantity.text
+                    val item = FoodItem(
+                        name = foodName.ifBlank { "Unnamed" },
+                        quantity = quantity.ifBlank { "1 piece" },
+                        calories = calories.toIntOrNull() ?: 0
                     )
-                    onAddClick(foodItem)
+                    onAdd(item)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Green)
+                enabled = foodName.isNotBlank() && calories.isNotBlank()
             ) {
-                Text("Add", color = Color.White)
+                Text("Add")
             }
         }
+        Spacer(Modifier.height(8.dp))
     }
 }
