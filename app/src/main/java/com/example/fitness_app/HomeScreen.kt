@@ -31,6 +31,7 @@ fun HomeScreen(navController: NavController) {
     val waterVm: WaterViewModel = viewModel(ctx)
     val fitnessVm: FitnessViewModel = viewModel(ctx)
     val fitnessProgress = (fitnessVm.completedCount / fitnessVm.dailyGoal.toFloat()).coerceIn(0f, 1f)
+    val profileVm: ProfileViewModel = viewModel(ctx)
 
 
     // Diet verileri
@@ -54,7 +55,7 @@ fun HomeScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Hi, Demo User 👋",
+                text = "Hi,${profileVm.name}  👋",
                 style = MaterialTheme.typography.headlineMedium
             )
             Text(

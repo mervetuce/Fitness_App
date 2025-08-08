@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,33 +25,36 @@ data class BottomItem(
 /** Tek tanımlı BottomNavigationBar */
 @Composable
 fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        BottomItem("Home", "home", Icons.Filled.Home),
-        BottomItem("Diet", "diet", Icons.Filled.Restaurant),
-        BottomItem("Water", "water", Icons.Filled.WaterDrop),
-        BottomItem("Fitness", "fitness", Icons.Filled.FitnessCenter),
-    )
-
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination: NavDestination? = navBackStackEntry?.destination
-
     NavigationBar {
-        items.forEach { item ->
-            val selected = currentDestination?.route == item.route
-            NavigationBarItem(
-                selected = selected,
-                onClick = {
-                    navController.navigate(item.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) }
-            )
-        }
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+            label = { Text("Home") },
+            selected = navController.currentDestination?.route == "home",
+            onClick = { navController.navigate("home") }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Restaurant, contentDescription = "Diet") },
+            label = { Text("Diet") },
+            selected = navController.currentDestination?.route == "diet",
+            onClick = { navController.navigate("diet") }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.WaterDrop, contentDescription = "Water") },
+            label = { Text("Water") },
+            selected = navController.currentDestination?.route == "water",
+            onClick = { navController.navigate("water") }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.FitnessCenter, contentDescription = "Fitness") },
+            label = { Text("Fitness") },
+            selected = navController.currentDestination?.route == "fitness",
+            onClick = { navController.navigate("fitness") }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+            label = { Text("Settings") },
+            selected = navController.currentDestination?.route == "settings",
+            onClick = { navController.navigate("settings") }
+        )
     }
 }
