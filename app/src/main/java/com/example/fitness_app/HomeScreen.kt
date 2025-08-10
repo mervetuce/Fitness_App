@@ -9,11 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,14 +26,15 @@ import androidx.navigation.NavController
 
 @Composable
 fun HomeScreen(navController: NavController) {
-    // Aynı Activity scope’undan VM'leri alıyoruz (ekranlar arası paylaşım için)
+    // Activity-scope VM'ler (ekranlar arası ortak state)
     val ctx = LocalContext.current as ComponentActivity
-    val dietVm: DietViewModel = viewModel(ctx)
-    val waterVm: WaterViewModel = viewModel(ctx)
-    val fitnessVm: FitnessViewModel = viewModel(ctx)
-    val fitnessProgress = (fitnessVm.completedCount / fitnessVm.dailyGoal.toFloat()).coerceIn(0f, 1f)
-    val profileVm: ProfileViewModel = viewModel(ctx)
+    val dietVm: DietViewModel = viewModel(viewModelStoreOwner = ctx)
+    val waterVm: WaterViewModel = viewModel(viewModelStoreOwner = ctx)
+    val fitnessVm: FitnessViewModel = viewModel(viewModelStoreOwner = ctx)
+    val profileVm: ProfileViewModel = viewModel(viewModelStoreOwner = ctx)
 
+    // Profil ismi (senin mevcut VM'inde doğrudan alan)
+    val name = if (profileVm.name.isBlank()) "User" else profileVm.name
 
     // Diet verileri
     val totalCalories = dietVm.totalCalories
@@ -43,6 +45,9 @@ fun HomeScreen(navController: NavController) {
     val totalWater = waterVm.total
     val waterGoal = waterVm.dailyGoal
     val waterProgress = (totalWater / waterGoal.toFloat()).coerceIn(0f, 1f)
+
+    // Fitness
+    val fitnessProgress = (fitnessVm.completedCount / fitnessVm.dailyGoal.toFloat()).coerceIn(0f, 1f)
 
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
@@ -55,7 +60,7 @@ fun HomeScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Hi,${profileVm.name}  👋",
+                text = "Hi, $name 👋",
                 style = MaterialTheme.typography.headlineMedium
             )
             Text(
@@ -76,7 +81,7 @@ fun HomeScreen(navController: NavController) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 InfoCard("Water Intake", "$totalWater / $waterGoal ml")
                 InfoCard("Calories", "$totalCalories / $calorieGoal kcal")
-                // İstersen buraya Fitness kartını da eklersin
+                // İstersen buraya Fitness kartını da ekleyebilirsin
             }
         }
     }
@@ -88,7 +93,7 @@ private fun ProgressItem(label: String, progress: Float) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
             progress = { progress.coerceIn(0f, 1f) },
-            modifier = Modifier.height(64.dp),
+            modifier = Modifier.size(64.dp),
             strokeWidth = 6.dp
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -105,7 +110,11 @@ private fun InfoCard(title: String, value: String) {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            Text(
+                title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
             Text(value, style = MaterialTheme.typography.bodyLarge)
         }
     }

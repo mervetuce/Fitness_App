@@ -21,10 +21,11 @@ import java.util.Locale
 
 @Composable
 fun WaterTrackerScreen(
-    vm: WaterViewModel = viewModel(LocalContext.current as ComponentActivity)
+    vm: WaterViewModel = viewModel(viewModelStoreOwner = LocalContext.current as ComponentActivity)
 ) {
     var isAdding by remember { mutableStateOf(false) }
 
+    // ViewModel API'ine uygun: doğrudan alanları kullanıyoruz
     val total = vm.total
     val goal = vm.dailyGoal
     val progress = (total / goal.toFloat()).coerceIn(0f, 1f)
@@ -79,7 +80,7 @@ fun WaterTrackerScreen(
                     Text(text = "+ Add Water")
                 }
 
-                // Hızlı ekleme butonları  (for döngüsü ve DOĞRU süslüler)
+                // Hızlı ekleme butonları (VM: add(amount, time))
                 if (isAdding) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -124,7 +125,7 @@ fun WaterTrackerScreen(
                     Text("Today's Log", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     if (vm.log.isNotEmpty()) {
                         IconButton(onClick = {
-                            // tümünü temizle
+                            // tümünü temizle (VM removeAt(index) API’sine göre)
                             while (vm.log.isNotEmpty()) vm.removeAt(0)
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = "Clear all")

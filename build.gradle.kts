@@ -4,3 +4,16 @@ plugins {
     alias(libs.plugins.jetbrainsKotlinAndroid) apply false
 
 }
+
+// build.gradle.kts (Project)
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Google Services Gradle plugin
+        classpath("com.google.gms:google-services:4.4.2")
+    }
+}
