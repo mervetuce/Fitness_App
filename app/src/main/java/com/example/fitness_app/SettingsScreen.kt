@@ -48,7 +48,6 @@ fun SettingsScreen(
     val ctx = LocalContext.current as ComponentActivity
     val authVm: AuthViewModel = viewModel(viewModelStoreOwner = ctx)
 
-    // TextField’lere başlangıç değerleri (kullanıcı düzenleyebilsin diye local state)
     var name by remember { mutableStateOf(profileVm.name) }
     var email by remember { mutableStateOf(profileVm.email) }
     var weight by remember { mutableStateOf(profileVm.weightKg.toString()) }
@@ -63,7 +62,7 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scroll) // kaydırma
+                .verticalScroll(scroll)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -155,8 +154,7 @@ fun SettingsScreen(
             SettingsCard(title = "Account") {
                 Button(
                     onClick = {
-                        authVm.logout()
-                        // Kullanıcıyı Login'e at ve backstack'i temizle
+                        authVm.signOut() // <<< düzeltildi
                         navController.navigate(Routes.LOGIN) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 inclusive = true
@@ -172,10 +170,9 @@ fun SettingsScreen(
                 ) { Text("Logout") }
             }
 
-            Spacer(Modifier.height(24.dp)) // bottom bar ile çakışmasın
+            Spacer(Modifier.height(24.dp))
         }
 
-        // Snackbar sabit konumda
         SnackbarHost(
             hostState = snackbar,
             modifier = Modifier

@@ -1,3 +1,4 @@
+// AppNavigation.kt
 package com.example.fitness_app
 
 import androidx.activity.ComponentActivity
@@ -5,8 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -15,8 +14,6 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.lifecycle.viewmodel.compose.viewModel
-
 
 @Composable
 fun AppNavigation() {
@@ -25,7 +22,8 @@ fun AppNavigation() {
     // Auth durumuna göre startDestination seç
     val activity = LocalContext.current as ComponentActivity
     val authVm: AuthViewModel = viewModel(viewModelStoreOwner = activity)
-    val isLoggedIn by authVm.isLoggedIn.collectAsState(initial = false)
+    val isLoggedIn = authVm.isLoggedIn   // Boolean; collectAsState() yok
+
     val start = if (isLoggedIn) Routes.HOME else Routes.LOGIN
 
     NavHost(

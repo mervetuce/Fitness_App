@@ -14,173 +14,193 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(nav: NavController) {
-    val ctx = LocalContext.current as ComponentActivity
-    val vm: AuthViewModel = viewModel(viewModelStoreOwner = ctx)
-    val scope = rememberCoroutineScope()
-
+fun LoginScreen(
+    nav: NavController,
+    vm: AuthViewModel = viewModel(LocalContext.current as ComponentActivity)
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val loading by vm.loading.collectAsState()
-    val err by vm.error.collectAsState()
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    AuthScaffold(title = "Login") {
-        OutlinedTextField(
-            value = email, onValueChange = { email = it },
-            label = { Text("Email") }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        AuthCard(title = "Login", snackbarHostState = snackbar) {
             OutlinedTextField(
-                value = password, onValueChange = { password = it },
-                label = { Text("Password") }, singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.weight(1f)
+                value = email, onValueChange = { email = it },
+                label = { Text("Email") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.width(12.dp))
-            TextButton(onClick = { nav.navigate(Routes.RESET) }) { Text("Forgot Password") }
-        }
 
-        Button(
-            onClick = {
-                scope.launch {
-                    vm.login(email, password) {
-                        nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = password, onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(12.dp))
+                TextButton(onClick = { nav.navigate(Routes.RESET) }) { Text("Forgot Password") }
+            }
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        val res = vm.signIn(email, password)
+                        if (res.isSuccess) {
+                            nav.navigate(Routes.HOME) {
+                                popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            snackbar.showSnackbar(res.exceptionOrNull()?.localizedMessage ?: "Login failed")
+                        }
                     }
-                }
-            },
-            enabled = !loading,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if (loading) "Please wait..." else "Login") }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Login") }
 
-        if (err != null) {
-            Text(err ?: "", color = MaterialTheme.colorScheme.error)
-            LaunchedEffect(err) { vm.consumeError() }
+            TextButton(
+                onClick = { nav.navigate(Routes.REGISTER) },
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) { Text("Don't have an account? Register") }
         }
 
-        TextButton(
-            onClick = { nav.navigate(Routes.REGISTER) },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) { Text("Don't have an account? Register") }
+        SnackbarHost(snackbar, modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp))
     }
 }
 
 @Composable
-fun RegisterScreen(nav: NavController) {
-    val ctx = LocalContext.current as ComponentActivity
-    val vm: AuthViewModel = viewModel(viewModelStoreOwner = ctx)
-    val scope = rememberCoroutineScope()
-
+fun RegisterScreen(
+    nav: NavController,
+    vm: AuthViewModel = viewModel(LocalContext.current as ComponentActivity)
+) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }          // görsel alan (şu an backend’de kullanılmıyor)
     var weight by remember { mutableStateOf("") }
 
-    val loading by vm.loading.collectAsState()
-    val err by vm.error.collectAsState()
-
-    AuthScaffold(title = "Create an account") {
-        OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(email, { email = it }, label = { Text("Email") }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(password, { password = it }, label = { Text("Password") }, singleLine = true,
-            visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(weight, { weight = it.filter { c -> c.isDigit() } }, label = { Text("Weight (kg)") }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-
-        Button(
-            onClick = {
-                val w = weight.toIntOrNull() ?: 70
-                scope.launch {
-                    vm.register(name, email, password, w) {
-                        nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } }
-                    }
-                }
-            },
-            enabled = !loading,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if (loading) "Please wait..." else "Register") }
-
-        if (err != null) {
-            Text(err ?: "", color = MaterialTheme.colorScheme.error)
-            LaunchedEffect(err) { vm.consumeError() }
-        }
-
-        TextButton(
-            onClick = { nav.navigate(Routes.LOGIN) },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) { Text("Already have an account ? Login") }
-    }
-}
-
-@Composable
-fun ResetPasswordScreen(nav: NavController) {
-    val ctx = LocalContext.current as ComponentActivity
-    val vm: AuthViewModel = viewModel(viewModelStoreOwner = ctx)
+    val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    var email by remember { mutableStateOf("") }
-    val loading by vm.loading.collectAsState()
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        AuthCard(title = "Create an account", snackbarHostState = snackbar) {
+            OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it }, label = { Text("Email") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(password, { password = it }, label = { Text("Password") }, singleLine = true,
+                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(age, { age = it.filter { c -> c.isDigit() } }, label = { Text("Age") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(weight, { weight = it.filter { c -> c.isDigit() } }, label = { Text("Weight (kg)") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
 
-    AuthScaffold(title = "Reset Password") {
-        OutlinedTextField(
-            value = email, onValueChange = { email = it },
-            label = { Text("Email") }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth()
-        )
+            Button(
+                onClick = {
+                    scope.launch {
+                        val w = weight.toIntOrNull() ?: 0
+                        val res = vm.signUp(name, email, password, w)
+                        if (res.isSuccess) {
+                            nav.navigate(Routes.HOME) {
+                                popUpTo(nav.graph.findStartDestination().id) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            snackbar.showSnackbar(res.exceptionOrNull()?.localizedMessage ?: "Registration failed")
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Register") }
 
-        Button(
-            onClick = { scope.launch { vm.sendReset(email) } },
-            enabled = !loading,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if (loading) "Sending..." else "Send Reset Link") }
+            TextButton(
+                onClick = { nav.navigate(Routes.LOGIN) },
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) { Text("Already have an account ? Login") }
+        }
 
-        TextButton(
-            onClick = { nav.navigate(Routes.LOGIN) },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        ) { Text("Remember your password? Back to login") }
+        SnackbarHost(snackbar, modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp))
     }
 }
 
-/* küçük ortak scaffold */
 @Composable
-private fun AuthScaffold(
+fun ResetPasswordScreen(
+    nav: NavController,
+    vm: AuthViewModel = viewModel(LocalContext.current as ComponentActivity)
+) {
+    var email by remember { mutableStateOf("") }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        AuthCard(title = "Reset Password", snackbarHostState = snackbar) {
+            OutlinedTextField(
+                value = email, onValueChange = { email = it },
+                label = { Text("Email") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = {
+                    scope.launch {
+                        val res = vm.reset(email)
+                        if (res.isSuccess) {
+                            snackbar.showSnackbar("Reset email sent")
+                            nav.navigate(Routes.LOGIN)
+                        } else {
+                            snackbar.showSnackbar(res.exceptionOrNull()?.localizedMessage ?: "Failed to send email")
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Send Reset Link") }
+
+            TextButton(onClick = { nav.navigate(Routes.LOGIN) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text("Remember your password? Back to login")
+            }
+        }
+
+        SnackbarHost(snackbar, modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp))
+    }
+}
+
+/* --- ortak kart --- */
+@Composable
+private fun AuthCard(
     title: String,
+    snackbarHostState: SnackbarHostState,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Card(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(0.9f),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    when (title) {
-                        "Login" -> "Enter your email and password to access your account"
-                        "Reset Password" -> "Enter your email address and we'll send you a link to reset your password"
-                        else -> "Enter your details to create your fitness tracker account"
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(Modifier.height(4.dp))
-                content()
-            }
+    Card(
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth(0.9f),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                when (title) {
+                    "Login" -> "Enter your email and password to access your account"
+                    "Reset Password" -> "Enter your email address and we'll send you a link to reset your password"
+                    else -> "Enter your details to create your fitness tracker account"
+                },
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(4.dp))
+            content()
         }
     }
 }

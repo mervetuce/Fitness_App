@@ -16,6 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,31 +25,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.fitness_app.data.Profile
 
 @Composable
 fun HomeScreen(navController: NavController) {
-    // Activity-scope VM'ler (ekranlar arası ortak state)
+    // Activity scope VM’ler
     val ctx = LocalContext.current as ComponentActivity
     val dietVm: DietViewModel = viewModel(viewModelStoreOwner = ctx)
     val waterVm: WaterViewModel = viewModel(viewModelStoreOwner = ctx)
     val fitnessVm: FitnessViewModel = viewModel(viewModelStoreOwner = ctx)
     val profileVm: ProfileViewModel = viewModel(viewModelStoreOwner = ctx)
 
-    // Profil ismi (senin mevcut VM'inde doğrudan alan)
-    val name = if (profileVm.name.isBlank()) "User" else profileVm.name
+    // Profile StateFlow (null gelebilir)
+    val profile by profileVm.profile.collectAsState(initial = null)
+    val displayName = profile?.name?.takeIf { it.isNotBlank() } ?: "User"
 
-    // Diet verileri
-    val totalCalories = dietVm.totalCalories
-    val calorieGoal = dietVm.calorieGoal
-    val dietProgress = (totalCalories / calorieGoal.toFloat()).coerceIn(0f, 1f)
-
-    // Water verileri
-    val totalWater = waterVm.total
-    val waterGoal = waterVm.dailyGoal
-    val waterProgress = (totalWater / waterGoal.toFloat()).coerceIn(0f, 1f)
-
-    // Fitness
-    val fitnessProgress = (fitnessVm.completedCount / fitnessVm.dailyGoal.toFloat()).coerceIn(0f, 1f)
+    // Güvenli progress hesapları (0/0 -> 0f, NaN guard)
+    val dietProgress = safeProgress(dietVm.totalCalories, dietVm.calorieGoal)
+    val waterProgress = safeProgress(waterVm.total, waterVm.dailyGoal)
+    val fitnessProgress = safeProgress(fitnessVm.completedCount, fitnessVm.dailyGoal)
 
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
@@ -60,7 +56,7 @@ fun HomeScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Hi, $name 👋",
+                text = "Hi, $displayName 👋",
                 style = MaterialTheme.typography.headlineMedium
             )
             Text(
@@ -79,12 +75,17 @@ fun HomeScreen(navController: NavController) {
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoCard("Water Intake", "$totalWater / $waterGoal ml")
-                InfoCard("Calories", "$totalCalories / $calorieGoal kcal")
-                // İstersen buraya Fitness kartını da ekleyebilirsin
+                InfoCard("Water Intake", "${waterVm.total} / ${waterVm.dailyGoal} ml")
+                InfoCard("Calories", "${dietVm.totalCalories} / ${dietVm.calorieGoal} kcal")
             }
         }
     }
+}
+
+/** 0/0 ve NaN durumlarına karşı güvenli progress */
+private fun safeProgress(total: Int, goal: Int): Float {
+    val p = if (goal > 0) total.toFloat() / goal.toFloat() else 0f
+    return if (p.isFinite()) p.coerceIn(0f, 1f) else 0f
 }
 
 /** Küçük yuvarlak progress + yüzde yazısı */
@@ -92,7 +93,7 @@ fun HomeScreen(navController: NavController) {
 private fun ProgressItem(label: String, progress: Float) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
+            progress = { progress }, // her zaman 0..1
             modifier = Modifier.size(64.dp),
             strokeWidth = 6.dp
         )
